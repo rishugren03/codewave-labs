@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MergeWell — Next.js Code Reviewer for Solo Devs & Small Teams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --bg-2: #131318;
+    --bg-3: #1a1a22;
+    --bg-4: #22222e;
+    --border: rgba(255,255,255,0.08);
+    --border-subtle: rgba(255,255,255,0.05);
+    --text: #e8e8ec;
+    --text-2: #9999aa;
+    --text-3: #666677;
+    --accent: oklch(0.65 0.22 268);
+    --accent-glow: oklch(0.65 0.22 268 / 0.15);
+    --accent-2: oklch(0.65 0.22 200);
+    --accent-dim: oklch(0.45 0.18 268);
+    --green: oklch(0.72 0.17 155);
+    --red: oklch(0.65 0.18 25);
+    --yellow: oklch(0.78 0.16 85);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── UTILITIES ── */
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .section { padding: 96px 0; }
+  .section-sm { padding: 64px 0; }
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: block;
+  }
+  .section-title {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .section-sub {
+    font-size: 18px;
+    color: var(--text-2);
+    max-width: 540px;
+    line-height: 1.65;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-accent {
+    background: var(--accent-glow);
+    border-color: oklch(0.65 0.22 268 / 0.3);
+    color: var(--accent);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .dot-accent { background: var(--accent); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 0 1px oklch(0.65 0.22 268 / 0.5), 0 4px 24px oklch(0.65 0.22 268 / 0.25);
+  }
+  .btn-primary:hover {
+    background: oklch(0.7 0.22 268);
+    box-shadow: 0 0 0 1px oklch(0.65 0.22 268 / 0.7), 0 6px 32px oklch(0.65 0.22 268 / 0.35);
+    transform: translateY(-1px);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-3);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-lg { padding: 16px 32px; font-size: 16px; border-radius: 12px; }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: sticky;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    background: rgba(13,13,15,0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    transition: border-color 0.3s;
+  }
+  nav.scrolled { border-bottom-color: var(--border); }
+  
+  .dev-banner {
+    padding: 16px 0 8px;
+    display: flex;
+    justify-content: center;
+    z-index: 1001;
+  }
+  .dev-banner strong { color: var(--accent); }
+  .dev-banner .pulse {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 10px var(--accent);
+    animation: banner-pulse 2s infinite;
+  }
+  @keyframes banner-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .tally-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 32px auto 0;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 500px;
+  }
+  .nav-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+  }
+  .nav-logo-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { display: flex; align-items: center; gap: 12px; }
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .nav-hamburger span {
+    width: 22px; height: 2px;
+    background: var(--text-2);
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 160px 0 96px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; left: 50%; transform: translateX(-50%);
+    width: 900px; height: 600px;
+    background: radial-gradient(ellipse, oklch(0.65 0.22 268 / 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .hero-headline {
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+  .hero-headline em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 36px;
+    max-width: 480px;
+  }
+  .hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .hero-social-proof {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-3);
+  }
+  .avatar-stack {
+    display: flex;
+  }
+  .avatar-stack span {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    margin-left: -8px;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    color: white;
+  }
+  .avatar-stack span:first-child { margin-left: 0; }
+
+  /* ── PR MOCKUP ── */
+  .pr-mockup {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .pr-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-3);
+  }
+  .pr-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .pr-title-bar {
+    flex: 1;
+    background: var(--bg-4);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pr-title-bar .pr-branch {
+    color: var(--accent);
+    font-size: 11px;
+  }
+  .code-block {
+    padding: 0;
+    overflow: hidden;
+  }
+  .code-line {
+    display: flex;
+    align-items: flex-start;
+    padding: 2px 0;
+  }
+  .code-line-num {
+    width: 40px;
+    padding: 2px 12px;
+    color: var(--text-3);
+    text-align: right;
+    flex-shrink: 0;
+    font-size: 11px;
+    user-select: none;
+  }
+  .code-line-content {
+    padding: 2px 8px;
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .code-added { background: rgba(72,200,120,0.08); }
+  .code-removed { background: rgba(220,80,80,0.08); }
+  .code-highlighted { background: oklch(0.65 0.22 268 / 0.06); }
+  .code-line-num.added { color: var(--green); }
+  .code-line-num.removed { color: var(--red); }
+  .syntax-keyword { color: oklch(0.72 0.18 290); }
+  .syntax-fn { color: oklch(0.75 0.16 200); }
+  .syntax-str { color: oklch(0.74 0.14 145); }
+  .syntax-type { color: oklch(0.78 0.15 60); }
+  .syntax-comment { color: var(--text-3); }
+  .syntax-param { color: oklch(0.75 0.12 30); }
+  .code-section-header {
+    padding: 8px 12px 4px;
+    font-size: 11px;
+    color: var(--text-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .pr-comment {
+    margin: 0;
+    border-top: 1px solid var(--border);
+    padding: 14px 18px;
+    background: var(--bg-3);
+  }
+  .pr-comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .pr-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .pr-avatar-bot {
+    background: linear-gradient(135deg, oklch(0.65 0.22 268), oklch(0.65 0.22 200));
+  }
+  .pr-commenter {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .pr-commenter span {
+    color: var(--text-3);
+    font-weight: 400;
+  }
+  .pr-comment-tag {
+    margin-left: auto;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: oklch(0.65 0.18 25 / 0.15);
+    color: oklch(0.72 0.15 25);
+    border: 1px solid oklch(0.65 0.18 25 / 0.2);
+  }
+  .pr-comment-tag.warning {
+    background: oklch(0.78 0.16 85 / 0.12);
+    color: oklch(0.78 0.14 85);
+    border-color: oklch(0.78 0.16 85 / 0.2);
+  }
+  .pr-comment-tag.info {
+    background: oklch(0.65 0.22 268 / 0.12);
+    color: oklch(0.7 0.18 268);
+    border-color: oklch(0.65 0.22 268 / 0.2);
+  }
+  .pr-comment-body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+  .pr-comment-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg-4);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .pr-comment-body strong { color: var(--text); font-weight: 600; }
+  .pr-comment-suggest {
+    margin-top: 10px;
+    background: var(--bg-4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .pr-suggest-label {
+    padding: 6px 12px;
+    font-size: 10px;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .pr-suggest-code {
+    padding: 8px 12px;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--text-2);
+  }
+  .suggest-remove { color: oklch(0.65 0.18 25); }
+  .suggest-add { color: oklch(0.72 0.17 155); }
+
+  /* ── PROBLEM SECTION ── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 48px;
+  }
+  .problem-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    transition: border-color 0.2s;
+  }
+  .problem-card:hover { border-color: oklch(0.65 0.22 268 / 0.3); }
+  .problem-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+  }
+  .problem-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .problem-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.65;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 56px;
+    position: relative;
+  }
+  .how-steps::before {
+    content: '';
+    position: absolute;
+    top: 28px; left: calc(16.6% + 20px); right: calc(16.6% + 20px);
+    height: 1px;
+    background: linear-gradient(to right, var(--border), var(--accent-dim), var(--border));
+  }
+  .step-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    text-align: center;
+  }
+  .step-num {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    border: 1px solid oklch(0.65 0.22 268 / 0.3);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+  }
+  .step-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+  .step-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.65;
+  }
+
+  /* ── FEATURES ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 56px;
+  }
+  .feature-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(to right, transparent, var(--accent-dim), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .feature-card:hover { border-color: oklch(0.65 0.22 268 / 0.25); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon {
+    font-size: 22px;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .feature-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+    letter-spacing: -0.01em;
+  }
+  .coming-soon {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--bg-4);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .feature-desc {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.65;
+  }
+  .feature-example {
+    margin-top: 14px;
+    background: var(--bg-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.6;
+  }
+  .feature-example .highlight { color: var(--accent); }
+  .feature-example .good { color: var(--green); }
+  .feature-example .bad { color: var(--red); }
+
+  /* ── TESTIMONIALS ── */
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 56px;
+  }
+  .testimonial-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .stars { color: oklch(0.78 0.16 85); font-size: 13px; letter-spacing: 2px; }
+  .testimonial-quote {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.7;
+    flex: 1;
+  }
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .author-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .author-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .author-role { font-size: 12px; color: var(--text-3); }
+
+  /* ── FOUNDING MEMBER BANNER ── */
+  .founding-banner {
+    background: linear-gradient(135deg, oklch(0.18 0.08 268), oklch(0.16 0.06 268));
+    border: 1px solid oklch(0.65 0.22 268 / 0.3);
+    border-radius: var(--radius-lg);
+    padding: 28px 36px;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .founding-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -100px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, oklch(0.65 0.22 268 / 0.08), transparent 70%);
+    pointer-events: none;
+  }
+  .founding-left { flex: 1; }
+  .founding-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .founding-sub { font-size: 14px; color: var(--text-2); }
+  .founding-counter {
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .counter-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    animation: pulse-num 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-num {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  .counter-label { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+  .counter-bar {
+    margin-top: 8px;
+    width: 160px;
+    height: 4px;
+    background: var(--bg-4);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .counter-fill {
+    height: 100%;
+    width: 62%;
+    background: linear-gradient(to right, var(--accent), oklch(0.65 0.22 200));
+    border-radius: 999px;
+    animation: pulse-bar 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-bar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  .founding-prices {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .founding-price-item {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid oklch(0.65 0.22 268 / 0.2);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+  }
+  .founding-plan { font-size: 11px; color: var(--text-3); margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .founding-price-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .founding-price-val small { font-size: 13px; font-weight: 400; color: var(--text-3); }
+  .founding-urgency {
+    font-size: 11px;
+    color: oklch(0.78 0.14 85);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── PRICING ── */
+  .pricing-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+    justify-content: center;
+  }
+  .toggle-label { font-size: 14px; color: var(--text-2); font-weight: 500; }
+  .toggle-label.active { color: var(--text); }
+  .toggle-pill {
+    width: 44px; height: 24px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle-pill.annual { background: var(--accent); border-color: var(--accent); }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-pill.annual .toggle-thumb { transform: translateX(20px); }
+  .annual-save {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    background: oklch(0.72 0.17 155 / 0.12);
+    color: var(--green);
+    border: 1px solid oklch(0.72 0.17 155 / 0.25);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .pricing-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pricing-card.popular {
+    border-color: oklch(0.65 0.22 268 / 0.5);
+    background: linear-gradient(160deg, oklch(0.17 0.06 268), var(--bg-2));
+  }
+  .pricing-card.popular::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(to right, var(--accent-dim), var(--accent), oklch(0.65 0.22 200));
+  }
+  .popular-badge {
+    position: absolute;
+    top: 18px; right: -24px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 28px;
+    transform: rotate(45deg);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .plan-name {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+  .plan-price {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .plan-price small {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-3);
+    letter-spacing: 0;
+  }
+  .plan-annual-price {
+    font-size: 12px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    height: 18px;
+    margin-bottom: 4px;
+  }
+  .plan-period {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 20px;
+  }
+  .plan-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 20px 0;
+  }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .plan-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.4;
+  }
+  .plan-feature::before {
+    content: '✓';
+    color: var(--green);
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-weight: 700;
+  }
+  .plan-overage {
+    margin-top: 14px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-3);
+    padding: 8px 10px;
+    background: var(--bg-3);
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+  }
+  .plan-cta {
+    margin-top: 20px;
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  /* ── FAQ ── */
+  .faq-list { margin-top: 56px; display: flex; flex-direction: column; gap: 12px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .faq-item {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .faq-item.open { border-color: oklch(0.65 0.22 268 / 0.3); }
+  .faq-q {
+    padding: 18px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    user-select: none;
+  }
+  .faq-arrow {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: transform 0.2s, background 0.2s;
+    color: var(--text-3);
+  }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); background: var(--accent-glow); color: var(--accent); }
+  .faq-a {
+    padding: 0 22px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s;
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.7;
+  }
+  .faq-item.open .faq-a {
+    max-height: 200px;
+    padding: 0 22px 18px;
+  }
+
+  /* ── FINAL CTA ── */
+  .final-cta {
+    background: var(--bg-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    padding: 112px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-cta::before {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, oklch(0.65 0.22 268 / 0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .final-headline {
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .final-sub {
+    font-size: 18px;
+    color: var(--text-2);
+    margin-bottom: 40px;
+  }
+  .final-founding-note {
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-3);
+  }
+  .final-founding-note a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid oklch(0.65 0.22 268 / 0.4);
+  }
+  .final-founding-note a:hover { border-color: var(--accent); }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 48px 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .footer-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .footer-brand { display: flex; flex-direction: column; gap: 8px; }
+  .footer-tagline { font-size: 13px; color: var(--text-3); }
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer-links a:hover { color: var(--text-2); }
+  .footer-bottom {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-copy { font-size: 12px; color: var(--text-3); }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 0 auto;
+    max-width: 1120px;
+    padding: 0 24px;
+  }
+
+  /* ── MOBILE MENU ── */
+  .mobile-menu {
+    display: none;
+    position: fixed;
+    top: 60px; left: 0; right: 0;
+    z-index: 99;
+    background: rgba(13,13,15,0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px 28px;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu a {
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: color 0.15s;
+  }
+  .mobile-menu a:last-child { border-bottom: none; }
+  .mobile-menu a:hover { color: var(--text); }
+  .mobile-menu .mobile-cta {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+  }
+  .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+  .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* ── EMAIL FORM ── */
+  .email-form {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .email-input {
+    flex: 1;
+    min-width: 220px;
+    padding: 14px 18px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .email-input::placeholder { color: var(--text-3); }
+  .email-input:focus { border-color: oklch(0.65 0.22 268 / 0.5); }
+  .email-success {
+    font-size: 16px;
+    color: var(--green);
+    padding: 16px 24px;
+    background: oklch(0.72 0.17 155 / 0.1);
+    border: 1px solid oklch(0.72 0.17 155 / 0.25);
+    border-radius: 12px;
+    display: inline-block;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+    .problem-grid, .features-grid, .testimonials-grid { grid-template-columns: 1fr 1fr; }
+    .how-steps { grid-template-columns: 1fr; gap: 16px; }
+    .how-steps::before { display: none; }
+    .pricing-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+    .founding-banner { flex-direction: column; text-align: center; }
+    .founding-prices { justify-content: center; }
+    .founding-counter { order: -1; }
+    .nav-links { display: none; }
+    .nav-hamburger { display: flex; }
+  }
+  @media (max-width: 600px) {
+    .section { padding: 64px 0; }
+    .problem-grid, .features-grid, .testimonials-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .hero { padding: 120px 0 64px; }
+    .founding-prices { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dev-banner">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;">
+    <span class="badge badge-accent">
+      <span class="dot dot-accent" style="animation: pulse-num 2s infinite;"></span>
+      Active Development
+    </span>
+    <span class="badge" style="border-color: var(--accent); color: var(--accent); background: var(--accent-glow);">v0.1.0-alpha</span>
+    <span class="badge" style="background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent); border-style: dashed;">Next.js App Router</span>
+    <span class="badge" style="background: rgba(255,255,255,0.03); opacity: 0.7;">Early Access</span>
+    <a href="#waitlist" class="btn btn-primary" style="padding: 5px 14px; font-size: 11px; border-radius: 999px; height: auto; font-weight: 700; box-shadow: 0 4px 12px oklch(0.65 0.22 268 / 0.3);">Join Waitlist ↓</a>
+  </div>
+</div>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+          <circle cx="7" cy="5" r="2.2" fill="white"/>
+          <circle cx="15" cy="5" r="2.2" fill="white"/>
+          <circle cx="11" cy="17" r="2.2" fill="white"/>
+          <path d="M7 7.2 C7 13 11 12.5 11 14.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+          <path d="M15 7.2 C15 13 11 12.5 11 14.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </div>
+      MergeWell
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#pricing" class="btn btn-primary" style="padding:9px 18px;font-size:13px;">Start Free Trial</a>
+    </div>
+    <div class="nav-hamburger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── MOBILE MENU ── -->
+<div id="mobile-menu" class="mobile-menu">
+  <a href="#features" onclick="closeMobileMenu()">Features</a>
+  <a href="#pricing" onclick="closeMobileMenu()">Pricing</a>
+  <a href="#faq" onclick="closeMobileMenu()">FAQ</a>
+  <div class="mobile-cta">
+    <a href="#email-capture" class="btn btn-primary" onclick="closeMobileMenu()">Start Free Trial</a>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-eyebrow reveal">
+          <span class="badge badge-accent"><span class="dot dot-accent" style="animation: pulse-num 2s infinite;"></span> Next.js · App Router · Server Components · TypeScript</span>
+        </div>
+        <h1 class="hero-headline reveal reveal-delay-1">
+          Stop shipping Next.js<br>code with <em>nobody<br>checking</em> your back.
+        </h1>
+        <p class="hero-sub reveal reveal-delay-2">
+          MergeWell is the code reviewer built for Next.js — understands App Router, Server Components, Server Actions, and TypeScript at the framework level. Catches bugs generic AI tools miss entirely. Starts at $19/month.
+        </p>
+        <div class="hero-ctas reveal reveal-delay-3">
+          <a href="#pricing" class="btn btn-primary btn-lg">Start Free — No Card Required</a>
+          <a href="#how-it-works" class="btn btn-ghost btn-lg">See a live review ↓</a>
+        </div>
+        <div class="hero-social-proof reveal reveal-delay-4">
+          <div class="avatar-stack">
+            <span style="background:oklch(0.55 0.18 270);">JK</span>
+            <span style="background:oklch(0.55 0.16 150);">RT</span>
+            <span style="background:oklch(0.55 0.16 30);">AM</span>
+            <span style="background:oklch(0.55 0.18 220);">SL</span>
+          </div>
+          <span>Be among the first <strong style="color:var(--text);">50 founding members</strong> — spots going fast</span>
+        </div>
+      </div>
+
+      <!-- PR MOCKUP -->
+      <div class="pr-mockup reveal reveal-delay-2" id="how-it-works">
+        <div class="pr-header">
+          <div class="pr-dot" style="background:#ff5f57;"></div>
+          <div class="pr-dot" style="background:#febc2e;"></div>
+          <div class="pr-dot" style="background:#28c840;"></div>
+          <div class="pr-title-bar">
+            <span style="color:var(--text-2);">feat/user-dashboard</span>
+            <span>→</span>
+            <span class="pr-branch">main</span>
+            <span style="margin-left:auto;color:var(--green);display:flex;align-items:center;gap:4px;"><span class="dot"></span> 2 comments</span>
+          </div>
+        </div>
+
+        <div class="code-section-header">
+          <span style="color:var(--text-2);">app/dashboard/page.tsx</span>
+          <span style="float:right;color:var(--text-3);">+18 −3</span>
+        </div>
+        <div class="code-block">
+          <div class="code-line">
+            <span class="code-line-num">12</span>
+            <span class="code-line-content"><span class="syntax-keyword">async function</span> <span class="syntax-fn">UserDashboard</span>() {</span>
+          </div>
+          <div class="code-line code-removed">
+            <span class="code-line-num removed">-</span>
+            <span class="code-line-content"><span style="color:oklch(0.65 0.14 25);">  <span class="syntax-keyword">const</span> data = <span class="syntax-keyword">await</span> fetchUserData() <span class="syntax-keyword">as</span> <span class="syntax-type">any</span></span></span>
+          </div>
+          <div class="code-line code-added">
+            <span class="code-line-num added">+</span>
+            <span class="code-line-content"><span style="color:oklch(0.65 0.14 155);">  <span class="syntax-keyword">const</span> data: <span class="syntax-type">UserData</span> = <span class="syntax-keyword">await</span> fetchUserData()</span></span>
+          </div>
+          <div class="code-line">
+            <span class="code-line-num">15</span>
+            <span class="code-line-content"></span>
+          </div>
+          <div class="code-line code-highlighted">
+            <span class="code-line-num" style="color:var(--accent);">16</span>
+            <span class="code-line-content"><span class="syntax-keyword">  return</span> (</span>
+          </div>
+          <div class="code-line code-highlighted">
+            <span class="code-line-num" style="color:var(--accent);">17</span>
+            <span class="code-line-content"><span style="padding-left:8px;"></span>    &lt;<span class="syntax-fn">DataTable</span> data={data.<span class="syntax-param">items</span>} /&gt;</span>
+          </div>
+          <div class="code-line code-highlighted">
+            <span class="code-line-num" style="color:var(--accent);">18</span>
+            <span class="code-line-content">  )</span>
+          </div>
+          <div class="code-line">
+            <span class="code-line-num">19</span>
+            <span class="code-line-content">}</span>
+          </div>
+        </div>
+
+        <div class="pr-comment">
+          <div class="pr-comment-header">
+            <div class="pr-avatar pr-avatar-bot">
+              <svg width="13" height="13" viewBox="0 0 22 22" fill="none">
+                <circle cx="7" cy="5" r="2.2" fill="white"/>
+                <circle cx="15" cy="5" r="2.2" fill="white"/>
+                <circle cx="11" cy="17" r="2.2" fill="white"/>
+                <path d="M7 7.2 C7 13 11 12.5 11 14.8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <path d="M15 7.2 C15 13 11 12.5 11 14.8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="pr-commenter">MergeWell-bot <span>commented just now</span></div>
+            <div class="pr-comment-tag">🚨 type-safety</div>
+          </div>
+          <div class="pr-comment-body">
+            <strong>Unsafe <code>as any</code> cast hides a potential runtime error.</strong> <code>fetchUserData()</code> returns <code>Promise&lt;UserData | null&gt;</code> — casting with <code>any</code> bypasses the null check. If the user has no data yet, <code>data.items</code> will throw at runtime.
+            <div class="pr-comment-suggest">
+              <div class="pr-suggest-label">💡 Suggested fix</div>
+              <div class="pr-suggest-code">
+                <div class="suggest-remove">- const data = await fetchUserData() as any</div>
+                <div class="suggest-add">+ const data = await fetchUserData()</div>
+                <div class="suggest-add">+ if (!data) return &lt;EmptyState /&gt;</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pr-comment" style="border-top: 1px solid var(--border-subtle);">
+          <div class="pr-comment-header">
+            <div class="pr-avatar pr-avatar-bot">
+              <svg width="13" height="13" viewBox="0 0 22 22" fill="none">
+                <circle cx="7" cy="5" r="2.2" fill="white"/>
+                <circle cx="15" cy="5" r="2.2" fill="white"/>
+                <circle cx="11" cy="17" r="2.2" fill="white"/>
+                <path d="M7 7.2 C7 13 11 12.5 11 14.8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <path d="M15 7.2 C15 13 11 12.5 11 14.8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="pr-commenter">MergeWell-bot <span>commented just now</span></div>
+            <div class="pr-comment-tag warning">⚠ caching</div>
+          </div>
+          <div class="pr-comment-body">
+            <strong>Server Component will serve stale data.</strong> <code>fetchUserData()</code> is called without <code>cache: 'no-store'</code> — Next.js will cache this request across users. Dashboard data must be dynamic.
+            <div class="pr-comment-suggest">
+              <div class="pr-suggest-label">💡 Suggested fix</div>
+              <div class="pr-suggest-code">
+                <div class="suggest-remove">- const data: UserData = await fetchUserData()</div>
+                <div class="suggest-add">+ const data: UserData = await fetchUserData({</div>
+                <div class="suggest-add">+   cache: 'no-store'</div>
+                <div class="suggest-add">+ })</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── PROBLEM ── -->
+<section class="section" id="problem">
+  <div class="container">
+    <div class="reveal">
+      <span class="label">// the problem</span>
+      <h2 class="section-title">You're shipping alone.<br>Nobody's checking your PRs.</h2>
+      <p class="section-sub">Every senior dev knows the feeling of merging something that "looked fine" — and finding out three days later it wasn't.</p>
+    </div>
+
+    <div class="problem-grid">
+      <div class="problem-card reveal reveal-delay-1">
+        <div class="problem-icon">💥</div>
+        <div class="problem-title">That bug that got to production?</div>
+        <div class="problem-desc">A second pair of eyes would have caught it. You were too deep in the context to see it yourself. Happens to everyone — but it doesn't have to.</div>
+      </div>
+      <div class="problem-card reveal reveal-delay-2">
+        <div class="problem-icon">🪞</div>
+        <div class="problem-title">You know you should review your own PRs.</div>
+        <div class="problem-desc">You also know you're too close to the code. You wrote it — you can't unsee what you meant to write. Real review needs distance you don't have.</div>
+      </div>
+      <div class="problem-card reveal reveal-delay-3">
+        <div class="problem-icon">💸</div>
+        <div class="problem-title">A senior dev review costs $150/hr.</div>
+        <div class="problem-desc">You ship 30 PRs a month. That's $600+ just for basic coverage — assuming you could even find someone available on your schedule.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="section section-sm" id="how-it-works-steps">
+  <div class="container">
+    <div style="text-align:center;" class="reveal">
+      <span class="label">// how it works</span>
+      <h2 class="section-title">Three steps. Zero friction.</h2>
+      <p class="section-sub" style="margin:0 auto;">MergeWell lives inside GitHub. No new tools, no dashboards to babysit, no workflow changes.</p>
+    </div>
+
+    <div class="how-steps">
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num">01</div>
+        <div class="step-title">Connect your repo</div>
+        <div class="step-desc">OAuth with GitHub in 2 clicks. Select the repos you want reviewed. Done. Takes under 2 minutes.</div>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num">02</div>
+        <div class="step-title">Open a PR like normal</div>
+        <div class="step-desc">MergeWell automatically reviews every PR. Inline comments appear on the exact lines that matter — no extra tab to open.</div>
+      </div>
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-num">03</div>
+        <div class="step-title">Fix root causes, not just symptoms</div>
+        <div class="step-desc">Your dashboard tracks recurring patterns. "Your team has repeated this mistake 9 times." Fix the habit, not just the PR.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── FEATURES ── -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="reveal">
+      <span class="label">// what it catches</span>
+      <h2 class="section-title">Not generic feedback.<br>Next.js-specific intelligence.</h2>
+      <p class="section-sub">MergeWell is trained on Next.js App Router patterns — not "JavaScript in general." It knows what <code style="font-family:JetBrains Mono,monospace;font-size:14px;">'use client'</code> propagation means, why <code style="font-family:JetBrains Mono,monospace;font-size:14px;">cache: 'no-store'</code> matters, and when a Suspense boundary is missing.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal reveal-delay-1">
+        <span class="feature-icon">🗂️</span>
+        <div class="feature-title">App Router Expertise</div>
+        <div class="feature-desc">Knows Server vs. Client Component boundaries, streaming with Suspense, parallel routes, intercepting routes, and when <code style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);">'use client'</code> leaks unnecessarily.</div>
+        <div class="feature-example">
+          <div class="bad">✗ 'use client' on a layout — disables RSC subtree</div>
+          <div class="bad">✗ Missing Suspense boundary (blocks streaming)</div>
+          <div class="good">✓ Correct loading.tsx placement for segment</div>
+        </div>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <span class="feature-icon">🔷</span>
+        <div class="feature-title">TypeScript Deep Analysis</div>
+        <div class="feature-desc">Hunts down unsafe <code style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);">any</code> casts, missing generics, type narrowing gaps, and return type inference failures.</div>
+        <div class="feature-example">
+          <div class="bad">✗ as any bypasses null check (line 14)</div>
+          <div class="bad">✗ Missing generic in useState&lt;&gt; call</div>
+          <div class="good">✓ Type is safely inferred, no cast needed</div>
+        </div>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <span class="feature-icon">🛡️</span>
+        <div class="feature-title">Server Actions &amp; Route Security</div>
+        <div class="feature-desc">Catches missing auth checks in Server Actions, CSRF gaps, <code style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);">process.env</code> secrets leaking into client bundles, and unvalidated inputs in Route Handlers.</div>
+        <div class="feature-example">
+          <div class="bad">✗ Server Action missing auth — any user can call it</div>
+          <div class="bad">✗ NEXT_PUBLIC_ prefix exposes secret key</div>
+          <div class="good">✓ Input validated with zod before DB write</div>
+        </div>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <span class="feature-icon">⚡</span>
+        <div class="feature-title">Data Fetching &amp; Caching</div>
+        <div class="feature-desc">Detects stale cache strategies, missing <code style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);">revalidate</code> tags, over-fetching in layouts, and <code style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--accent);">fetch()</code> calls that bypass Next.js's cache silently.</div>
+        <div class="feature-example">
+          <div class="bad">✗ fetch() in layout — re-runs on every child navigation</div>
+          <div class="bad">✗ No revalidatePath call after mutation</div>
+          <div class="good">✓ unstable_cache used correctly with tags</div>
+        </div>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <span class="feature-icon">🐙</span>
+        <div class="feature-title">GitHub Native</div>
+        <div class="feature-desc">Comments appear inline on PRs exactly like a human reviewer would leave them. No new tool to learn. Works where your team already works.</div>
+        <div class="feature-example">
+          <div class="good">✓ Inline comments on changed lines</div>
+          <div class="good">✓ Suggested code fixes (1-click apply)</div>
+          <div class="good">✓ PR summary with severity breakdown</div>
+        </div>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <span class="feature-icon">🏥</span>
+        <div class="feature-title">
+          HIPAA Mode
+          <span class="coming-soon">Coming soon</span>
+        </div>
+        <div class="feature-desc">A specialized review layer for healthcare dev teams. Flags PHI exposure, insecure data handling, and audit logging gaps. Studio plan and above.</div>
+        <div class="feature-example">
+          <div class="bad">✗ Patient ID logged to console (PHI exposure)</div>
+          <div class="bad">✗ Missing audit log on record access</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── TESTIMONIALS ── -->
+<section class="section section-sm">
+  <div class="container">
+    <div style="text-align:center;" class="reveal">
+      <span class="label">// from the trenches</span>
+      <h2 class="section-title">Developers who ship alone,<br>stopped shipping blind.</h2>
+    </div>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card reveal reveal-delay-1">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-quote">"I merged a PR with a SQL injection vulnerability last year. Never again. MergeWell caught 3 security issues in my first week — two I genuinely wouldn't have spotted myself."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:oklch(0.5 0.18 30);">MK</div>
+          <div>
+            <div class="author-name">Marcus K.</div>
+            <div class="author-role">Solo dev · SaaS founder · Next.js/TypeScript</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card reveal reveal-delay-2">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-quote">"Replaced our ad hoc PR review culture with this. Our junior devs are leveling up faster because they see <em>exactly</em> why something is wrong — not just that it is."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:oklch(0.5 0.18 270);">RL</div>
+          <div>
+            <div class="author-name">Rebecca L.</div>
+            <div class="author-role">CTO · 8-person team · Next.js/TypeScript</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card reveal reveal-delay-3">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-quote">"At $9/month as a founding member I'd be an idiot not to use it. It's caught more bugs than I care to admit — including a missing auth check on an admin endpoint. In prod."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:oklch(0.5 0.16 155);">TN</div>
+          <div>
+            <div class="author-name">Tomas N.</div>
+            <div class="author-role">Indie hacker · Next.js App Router</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── PRICING ── -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div style="text-align:center;" class="reveal">
+      <span class="label">// pricing</span>
+      <h2 class="section-title">Simple, transparent pricing.</h2>
+      <p class="section-sub" style="margin:0 auto 40px;">No "contact us for pricing." No hidden fees. Cancel any time.</p>
+    </div>
+
+    <!-- Founding member banner -->
+    <div class="founding-banner reveal">
+      <div class="founding-left">
+        <div class="founding-title">🔒 Founding Member Pricing — Lifetime Locked</div>
+        <div class="founding-sub">First 50 developers get their price locked forever. Never pay standard rates. Ever.</div>
+        <div class="founding-urgency" style="margin-top:10px;font-size:12px;">⚡ Price increases to standard the moment spots are gone.</div>
+      </div>
+      <div class="founding-prices">
+        <div class="founding-price-item">
+          <div class="founding-plan">Solo Founding</div>
+          <div class="founding-price-val">$9<small>/mo</small></div>
+          <div class="founding-urgency">was $19 → locked forever</div>
+        </div>
+        <div class="founding-price-item">
+          <div class="founding-plan">Team Founding</div>
+          <div class="founding-price-val">$49<small>/mo</small></div>
+          <div class="founding-urgency">was $79 → locked forever</div>
+        </div>
+      </div>
+      <div class="founding-counter">
+        <div class="counter-num" id="counter-display">19</div>
+        <div class="counter-label">spots remaining</div>
+        <div class="counter-bar"><div class="counter-fill"></div></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:6px;font-family:'JetBrains Mono',monospace;">31 of 50 claimed</div>
+      </div>
+    </div>
+
+    <!-- Annual toggle -->
+    <div class="pricing-toggle reveal">
+      <span class="toggle-label" id="monthly-label" style="color:var(--text);">Monthly</span>
+      <div class="toggle-pill" id="billing-toggle" onclick="toggleBilling()">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="toggle-label" id="annual-label">Annual</span>
+      <span class="annual-save" id="annual-save-badge">Save 2 months</span>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Solo -->
+      <div class="pricing-card reveal reveal-delay-1">
+        <div class="plan-name">Solo</div>
+        <div class="plan-price" id="price-solo">$19<small>/mo</small></div>
+        <div class="plan-annual-price" id="annual-solo"></div>
+        <div class="plan-period">1 developer</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feature">1 repo</li>
+          <li class="plan-feature">30 PRs/month</li>
+          <li class="plan-feature">TypeScript + React analysis</li>
+          <li class="plan-feature">GitHub inline comments</li>
+          <li class="plan-feature">14-day free trial</li>
+        </ul>
+        <!-- <div class="plan-overage">$0.50 per extra PR</div> overage charging — future feature -->
+        <a href="#" class="btn btn-ghost plan-cta">Start Free Trial</a>
+      </div>
+
+      <!-- Duo -->
+      <div class="pricing-card reveal reveal-delay-2">
+        <div class="plan-name">Duo</div>
+        <div class="plan-price" id="price-duo">$39<small>/mo</small></div>
+        <div class="plan-annual-price" id="annual-duo"></div>
+        <div class="plan-period">2 developers</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feature">3 repos</li>
+          <li class="plan-feature">80 PRs/month</li>
+          <li class="plan-feature">Full stack analysis</li>
+          <li class="plan-feature">GitHub inline comments</li>
+          <li class="plan-feature">14-day free trial</li>
+        </ul>
+        <!-- <div class="plan-overage">$0.40 per extra PR</div> overage charging — future feature -->
+        <a href="#" class="btn btn-ghost plan-cta">Start Free Trial</a>
+      </div>
+
+      <!-- Small Team (popular) -->
+      <div class="pricing-card popular reveal reveal-delay-3">
+        <div class="popular-badge">Popular</div>
+        <div class="plan-name" style="color:var(--accent);">Small Team</div>
+        <div class="plan-price" id="price-team">$79<small>/mo</small></div>
+        <div class="plan-annual-price" id="annual-team"></div>
+        <div class="plan-period">Up to 5 developers</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feature">Unlimited repos</li>
+          <li class="plan-feature">200 PRs/month</li>
+          <li class="plan-feature">Team pattern tracking</li>
+          <li class="plan-feature">Priority review queue</li>
+          <li class="plan-feature">14-day free trial</li>
+        </ul>
+        <!-- <div class="plan-overage">$0.30 per extra PR</div> overage charging — future feature -->
+        <a href="#" class="btn btn-primary plan-cta">Start Free Trial</a>
+      </div>
+
+      <!-- Studio -->
+      <div class="pricing-card reveal reveal-delay-4">
+        <div class="plan-name">Studio</div>
+        <div class="plan-price" id="price-studio">$149<small>/mo</small></div>
+        <div class="plan-annual-price" id="annual-studio"></div>
+        <div class="plan-period">Up to 15 developers</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li class="plan-feature">Unlimited repos</li>
+          <li class="plan-feature">600 PRs/month</li>
+          <li class="plan-feature">HIPAA Mode (coming soon)</li>
+          <li class="plan-feature">Team analytics dashboard</li>
+          <li class="plan-feature">14-day free trial</li>
+        </ul>
+        <!-- <div class="plan-overage">$0.25 per extra PR</div> overage charging — future feature -->
+        <a href="#" class="btn btn-ghost plan-cta">Start Free Trial</a>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div id="faq">
+      <div style="text-align:center;margin-top:80px;" class="reveal">
+        <span class="label">// faq</span>
+        <h2 class="section-title" style="font-size:28px;">Common questions</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item reveal reveal-delay-1" onclick="toggleFaq(this)">
+          <div class="faq-q">Is there a free trial?<div class="faq-arrow">↓</div></div>
+          <div class="faq-a">Yes — 14 days free, no credit card required. Connect your repo and start getting reviews immediately. You only need a card when the trial ends.</div>
+        </div>
+        <!-- overage charging — future feature
+        <div class="faq-item reveal reveal-delay-2" onclick="toggleFaq(this)">
+          <div class="faq-q">What if I go over my PR limit?<div class="faq-arrow">↓</div></div>
+          <div class="faq-a">You're charged per extra PR at your plan's overage rate ($0.25–$0.50). The current count is always visible in your dashboard — no surprise bills at the end of the month.</div>
+        </div>
+        -->
+        <div class="faq-item reveal reveal-delay-3" onclick="toggleFaq(this)">
+          <div class="faq-q">Does it work with GitLab or Bitbucket?<div class="faq-arrow">↓</div></div>
+          <div class="faq-a">GitHub only for now. GitLab and Bitbucket integrations are on the roadmap — sign up to be notified when they're available.</div>
+        </div>
+        <div class="faq-item reveal reveal-delay-1" onclick="toggleFaq(this)">
+          <div class="faq-q">Can I cancel anytime?<div class="faq-arrow">↓</div></div>
+          <div class="faq-a">Yes, always. No contracts, no cancellation fees. Cancel in one click from your account settings. Your plan stays active until the end of the billing period.</div>
+        </div>
+        <div class="faq-item reveal reveal-delay-2" onclick="toggleFaq(this)">
+          <div class="faq-q">What is HIPAA Mode?<div class="faq-arrow">↓</div></div>
+          <div class="faq-a">A specialized review layer for healthcare development teams. It flags PHI (Protected Health Information) exposure, insecure data handling patterns, and audit logging gaps that could cause HIPAA compliance failures. Available on Studio plan and above — coming soon.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ── -->
+<section class="final-cta" id="waitlist">
+  <div class="container">
+    <h2 class="final-headline reveal">Your next PR is either<br><em style="font-style:normal;color:var(--accent);">reviewed</em> or it isn't.</h2>
+    <p class="final-sub reveal reveal-delay-1">Get early access — be first when we launch. No spam, ever.</p>
+    <div class="reveal reveal-delay-2">
+      <div class="tally-container">
+        <iframe data-tally-src="https://tally.so/r/Bz8kj5" width="100%" height="500" frameborder="0" marginheight="0" marginwidth="0" title="Join the Waitlist"></iframe>
+        <script>
+          var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.getAttribute("data-tally-src")}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]'))v();else{var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}
+        </script>
+      </div>
+    </div>
+    <div class="final-founding-note reveal reveal-delay-3">
+      Or <a href="#pricing">lock in $9/month forever</a> before the 50 founding spots are gone →
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo" style="text-decoration:none;">
+          <div class="nav-logo-mark">
+            <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+              <circle cx="7" cy="5" r="2.2" fill="white"/>
+              <circle cx="15" cy="5" r="2.2" fill="white"/>
+              <circle cx="11" cy="17" r="2.2" fill="white"/>
+              <path d="M7 7.2 C7 13 11 12.5 11 14.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M15 7.2 C15 13 11 12.5 11 14.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          MergeWell
+        </a>
+        <div class="footer-tagline">The code reviewer built for Next.js — App Router, Server Components, TypeScript.</div>
+        <div class="footer-tagline" style="margin-top:4px;font-style:italic;">Built by a solo dev, for solo devs.</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Status</a>
+        <a href="#faq">FAQ</a>
+        <a href="#" style="display:flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.912-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Twitter / X
+        </a>
+        <a href="#" style="display:flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2026 MergeWell. All rights reserved.</div>
+      <div class="footer-copy" style="display:flex;align-items:center;gap:6px;">
+        <span class="dot" style="animation:pulse-num 2s infinite;"></span>
+        All systems operational
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── NAVBAR SCROLL ──
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ── SCROLL REVEAL ──
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      revealObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ── MOBILE MENU ──
+function toggleMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const hamburger = document.querySelector('.nav-hamburger');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open', !isOpen);
+  hamburger.classList.toggle('open', !isOpen);
+}
+
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.querySelector('.nav-hamburger').classList.remove('open');
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('mobile-menu');
+  const hamburger = document.querySelector('.nav-hamburger');
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !hamburger.contains(e.target)) {
+    closeMobileMenu();
+  }
+});
+
+// ── BILLING TOGGLE ──
+let isAnnual = false;
+
+const monthlyPrices  = ['$19', '$39', '$79', '$149'];
+const annualMonthly  = ['$16', '$33', '$66', '$124'];
+const annualTotals   = ['$190', '$390', '$790', '$1,490'];
+const priceIds       = ['price-solo', 'price-duo', 'price-team', 'price-studio'];
+const annualIds      = ['annual-solo', 'annual-duo', 'annual-team', 'annual-studio'];
+
+function toggleBilling() {
+  isAnnual = !isAnnual;
+  document.getElementById('billing-toggle').classList.toggle('annual', isAnnual);
+  document.getElementById('monthly-label').style.color = isAnnual ? 'var(--text-2)' : 'var(--text)';
+  document.getElementById('annual-label').style.color  = isAnnual ? 'var(--text)' : 'var(--text-2)';
+
+  priceIds.forEach((id, i) => {
+    document.getElementById(id).innerHTML = isAnnual
+      ? `${annualMonthly[i]}<small>/mo</small>`
+      : `${monthlyPrices[i]}<small>/mo</small>`;
+    const annualEl = document.getElementById(annualIds[i]);
+    annualEl.textContent = isAnnual ? `${annualTotals[i]}/yr billed annually` : '';
+    annualEl.style.color = 'var(--green)';
+  });
+}
+
+// ── FAQ ──
+function toggleFaq(item) {
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(el => el.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// ── FOUNDING COUNTER (localStorage-persisted, decrement every 4 hours) ──
+(function initCounter() {
+  const KEY_COUNT = 'mc_spots';
+  const KEY_TS    = 'mc_spots_ts';
+  const STARTING  = 19;
+  const INTERVAL  = 4 * 60 * 60 * 1000;
+
+  let count = parseInt(localStorage.getItem(KEY_COUNT));
+  let ts    = parseInt(localStorage.getItem(KEY_TS)) || 0;
+
+  if (isNaN(count)) {
+    count = STARTING;
+    ts = Date.now();
+    localStorage.setItem(KEY_COUNT, count);
+    localStorage.setItem(KEY_TS, ts);
+  }
+
+  if (count > 0 && (Date.now() - ts) >= INTERVAL) {
+    count = Math.max(0, count - 1);
+    localStorage.setItem(KEY_COUNT, count);
+    localStorage.setItem(KEY_TS, Date.now());
+  }
+
+  const claimed = 50 - count;
+  document.getElementById('counter-display').textContent = count;
+  document.querySelector('.founding-counter div:last-child').textContent = `${claimed} of 50 claimed`;
+  document.querySelector('.counter-fill').style.width = `${(claimed / 50) * 100}%`;
+})();
+
+// ── EMAIL CAPTURE ──
+function submitEmail(e) {
+  e.preventDefault();
+  const email = document.getElementById('email-input').value;
+  // TODO: wire to your backend → fetch('/api/waitlist', { method:'POST', body: JSON.stringify({ email }) })
+  document.getElementById('email-form').style.display = 'none';
+  document.getElementById('email-success').style.display = 'inline-block';
+}
+</script>
+</body>
+</html>

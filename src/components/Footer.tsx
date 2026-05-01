@@ -97,6 +97,34 @@ export default function Footer() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          style={{
+            marginTop: '8px'
+          }}
+        >
+          <motion.a 
+            href="https://rishuu.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.05, color: '#fff' }}
+            style={{
+              fontSize: '1rem',
+              color: 'var(--text-secondary)',
+              textDecoration: 'none',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            Visit Portfolio: <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>rishuu.me</span>
+          </motion.a>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
           transition={{ delay: 0.5 }}
           style={{
             marginTop: '16px',

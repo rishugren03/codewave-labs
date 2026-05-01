@@ -3,6 +3,7 @@
 import React from 'react';
 import { ExternalLink, Github } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 interface ProjectCardProps {
   title: string;
@@ -105,22 +106,41 @@ export default function ProjectCard({
           marginTop: 'auto'
         }}>
           {liveLink && (
-            <motion.a 
-              href={liveLink} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              whileHover={{ x: 3, color: 'var(--accent-primary)' }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)'
-              }}
-            >
-              <ExternalLink size={18} /> Live Demo
-            </motion.a>
+            liveLink.startsWith('/') ? (
+              <Link href={liveLink} passHref legacyBehavior>
+                <motion.a 
+                  whileHover={{ x: 3, color: 'var(--accent-primary)' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ExternalLink size={18} /> View Product
+                </motion.a>
+              </Link>
+            ) : (
+              <motion.a 
+                href={liveLink} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                whileHover={{ x: 3, color: 'var(--accent-primary)' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <ExternalLink size={18} /> Live Demo
+              </motion.a>
+            )
           )}
           {githubLink && (
             <motion.a 
