@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/mergewell",
-        destination: "/mergewell.html",
+        destination: "/mergewell-static.html",
       },
     ];
   },
