@@ -5,16 +5,17 @@ import ProjectCard from '@/components/ProjectCard';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
 
-const PROJECTS = [];
-
-const UPCOMING_PROJECTS = [
+const PROJECTS = [
   {
     title: 'MergeWell',
-    description: 'AI PR Reviewer for Next.js applications. Understands App Router, Server Components, and more.',
-    tags: ['Upcoming', 'Next.js', 'AI', 'PR Reviewer'],
-    liveLink: '/mergewell',
+    description: 'The ultimate AI PR Reviewer for Next.js. Deeply understands App Router, Server Components, and complex patterns to provide human-like feedback and code improvements.',
+    tags: ['Live', 'Next.js', 'AI', 'PR Reviewer'],
+    liveLink: 'https://mergewell.codewavelabs.org',
     delay: 100
-  },
+  }
+];
+
+const UPCOMING_PROJECTS = [
   {
     title: 'inseller.in',
     description: 'A revolutionary new platform currently under development.',
@@ -154,6 +155,36 @@ export default function Home() {
           >
             Explore Projects
           </motion.a>
+        </section>
+
+        {/* Live Projects Section */}
+        <section id="live" style={{ paddingTop: '80px' }}>
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="section-header"
+          >
+            <h2 className="section-title">
+              Live Operations
+            </h2>
+            <div style={{
+              height: '1px',
+              flex: 1,
+              background: 'linear-gradient(90deg, var(--surface-border) 0%, transparent 100%)'
+            }} />
+          </motion.div>
+
+          <div className="projects-grid">
+            {PROJECTS.map((project, index) => (
+              <ProjectCard 
+                key={project.title}
+                {...project}
+                delay={index * 150}
+              />
+            ))}
+          </div>
         </section>
 
         {/* Upcoming Section */}
