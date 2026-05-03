@@ -4,7 +4,7 @@ A digital laboratory for high-impact experiments and projects where code meets c
 
 ## 🚀 Active Projects
 
-- **[MergeWell](/mergewell)**: AI-powered code reviewer specifically built for Next.js (App Router, Server Components).
+- **[MergeWell](https://mergewell.codewavelabs.org/)**: AI-powered code reviewer specifically built for Next.js (App Router, Server Components).
 - **Computer Agent**: Experimental AI agent capable of controlling computer interfaces.
 - **inseller.in**: A revolutionary new platform under active development.
 
